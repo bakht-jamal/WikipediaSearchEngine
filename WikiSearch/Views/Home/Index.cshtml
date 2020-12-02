@@ -1,0 +1,111 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+}
+
+
+<div class="App">
+    <input type="hidden" id="currentIpAddress" />
+    <h1>Wikipedia Search Engine</h1>
+    <div class="formElements">
+        <input type="text" placeholder="Search here" autocomplete="off" id="example-search-input" value="">
+        <button id="btnSearch" type="button">Search</button>
+    </div>
+    <div id="mainContent">
+
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+<script type="text/javascript">
+
+    $(document).on('keypress', function (e) {
+        if (e.which == 13) {
+            SearchApi();
+        }
+    });
+
+    function SaveUserSearches(searchTitle, searchResponse) {
+
+        var saveUserSearchRequest = new Object();
+        saveUserSearchRequest.SearchTitle = searchTitle;
+        saveUserSearchRequest.SearchResponse = searchResponse;
+        saveUserSearchRequest.IpAddress = $("#currentIpAddress").val();
+
+        $.ajax({
+            url: 'http://localhost:5005/api/SaveUserSearchData',
+            type: 'POST',
+            dataType: 'json',
+            data: saveUserSearchRequest,
+            success: function (data, textStatus, xhr) {
+                console.log(data);
+            },
+            error: function (xhr, textStatus, errorThrown) {
+                console.log('Error in Operation');
+            }
+        });  
+    }
+
+    function SearchApi() {
+        var searchTitleValue = $("#example-search-input").val();
+        var responseData;
+        $.ajax({
+            url: 'https://en.wikipedia.org/w/api.php?origin=*&action=query&list=search&srsearch=' + searchTitleValue + '&format=json',
+            type: "GET",
+            dataType: "json",
+            success: function (data) {
+                responseData = data.query.search;
+                $('#mainContent').html('');
+                responseData.forEach((q) => {
+                    $('#mainContent')
+                        .append("<div class='searchResultDiv'>" +
+                            "<h3>" +
+                            "<a target='_blank' href='https://en.wikipedia.org/wiki/" + q.title.replace(/ /g, "_") + "'>" + q.title.replace(/ /g, "_") + "</a>" +
+                            "</h3>" +
+                            "<span class='link'>" +
+                            "<a target='_blank' href='https://en.wikipedia.org/wiki/" + q.title.replace(/ /g, "_") + "'>" + 'https://en.wikipedia.org/wiki/' + q.title.replace(/ /g, "_") + "</a>" +
+                            "</span>" +
+                            "<p class=\"description\">" + q.snippet +
+
+                            "</p>" +
+                            "</div>"
+                        );
+                });
+
+                SaveUserSearches(searchTitleValue, JSON.stringify(responseData));
+            },
+            error: function (xhr, status, error) {
+                alert(xhr.responseText);
+                alert(status);
+                alert(error);
+            }
+        });
+    }
+
+    $(document).ready(function () {
+        $(function () {
+
+            $.getJSON("https://api.ipify.org?format=json",
+                function (data) {
+                    $("#currentIpAddress").val(data.ip);
+                }); 
+            
+            $('#btnSearch').click(function (event) {
+                event.preventDefault();
+                SearchApi();
+            });
+
+            $('#example-search-input').blur(function () {
+                if (!$('#example-search-input').val()) {
+                    $('#mainContent').html('');
+                }
+            });
+
+            $('#example-search-input').on('keyup', function () {
+                if (!$('#example-search-input').val()) {
+                    $('#mainContent').html('');
+                }
+            });
+
+        });
+    });
+</script>
